@@ -26,7 +26,7 @@ async def check_video_status_async(d_id_client, talk_id, timeout=600):
             await asyncio.sleep(30)  # Increase the interval to reduce requests
     return d_id_client.get_video_url(talk_id)
 
-def generate_video(edited_script, source_url):
+def generate_video(edited_script):
     # Initialization
     if 'video_engine' not in st.session_state:
         st.session_state['video_engine'] = 'D-ID'
@@ -45,8 +45,19 @@ def generate_video(edited_script, source_url):
     else:
         st.write("Video Generation with D-ID")
 
+        # File uploader for source video
+        uploaded_file = st.file_uploader("Upload a source video file", type=["mp4", "mov", "avi"])
+        if uploaded_file is None:
+            st.warning("Please upload a source video file to proceed.")
+            return None
+
+        # Save the uploaded file to a temporary location
+        temp_video_path = f"temp_{uploaded_file.name}"
+        with open(temp_video_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
         # Create a talk for D-ID video generation
-        talk = d_id_client.create_talk(source_url, edited_script)
+        talk = d_id_client.create_talk(temp_video_path, edited_script)
         talk_id = talk.get("id")
         print(f"Talk ID: {talk_id}")
 
@@ -60,3 +71,13 @@ def generate_video(edited_script, source_url):
             st.error("Failed to create video.")
 
     return video_url
+
+# Example usage
+if __name__ == "__main__":
+    st.title("Video Generation Tool")
+    edited_script = st.text_area("Enter the script for the video:")
+    if st.button("Generate Video"):
+        if edited_script.strip():
+            generate_video(edited_script)
+        else:
+            st.warning("Please enter a script to proceed.")
